@@ -1,0 +1,19 @@
+metadata:
+  name: "Restrict EC2 instance types in ephemeral environments to t3.small or t3.micro."
+  id: "AWS_INSTANCE_TYPE"
+  category: "COMPLIANCE"
+definition:
+  or:
+    - cond_type: attribute
+      resource_types:
+        - aws_instance
+      attribute: instance_type
+      operator: equals
+      value: "t3.micro"
+    - cond_type: attribute
+      resource_types:
+        - aws_instance
+      attribute: instance_type
+      operator: equals
+      value: "t3.small"
+
