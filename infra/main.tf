@@ -9,8 +9,6 @@ terraform {
 
   backend "s3" {
     bucket         = "ephemeral-preinfra-tfstate-bucket"   # preinfra in bucekts
-    key            = "ephemeral/${terraform.workspace}.tfstate"
-    region         = var.aws_region
     dynamodb_table = "ephemeral-preinfra-tflocks"          # preinfra in DynamoDB
     encrypt        = true
   }
