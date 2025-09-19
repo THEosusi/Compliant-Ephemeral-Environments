@@ -8,8 +8,8 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "ephemeral-preinfra-tfstate-bucket"   # preinfra in bucekts
-    dynamodb_table = "ephemeral-preinfra-tflocks"          # preinfra in DynamoDB
+    bucket         = "ephemeral-preinfra-tfstate-bucket"
+    dynamodb_table = "ephemeral-preinfra-tflocks"
     encrypt        = true
   }
 }
@@ -30,7 +30,7 @@ data "aws_ami" "amazon_linux_2" {
 
 # Security Group
 resource "aws_security_group" "no_inbound" {
-  name        = "${var.project_name}-sg"
+  name        = "${var.project_name}-sg-${terraform.workspace}"
   description = "No inbound allowed (ephemeral test instance)"
 
   egress {
