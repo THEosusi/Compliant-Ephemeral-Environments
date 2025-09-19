@@ -28,7 +28,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="key=ephemeral/pr-${{ github.event.pull_request.number }}.tfstate" \
-            -backend-config="region=eu-north-1"
+            -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Select/Create Workspace
         if: github.event.action != 'closed'
@@ -37,6 +37,22 @@ jobs:
       - name: Terraform Apply
         if: github.event.action != 'closed'
         run: terraform apply -auto-approve
+
+      - name: Get Terraform Output
+        if: github.event.action != 'closed'
+        id: tf_output
+        run: |
+          echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+
+      - name: Comment on PR
+        if: github.event.action != 'closed'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            Your ephemeral environment is ready!  
+            Access it here: http://$PUBLIC_IP:8080
 
       - name: Select Workspace (for destroy)
         if: github.event.action == 'closed'
