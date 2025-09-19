@@ -41,18 +41,18 @@ jobs:
       - name: Get Terraform Output
         if: github.event.action != 'closed'
         id: tf_output
-        run: |
-          echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+        run: echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
 
-      - name: Comment on PR
+      - name: Comment or Update PR (environment ready)
         if: github.event.action != 'closed'
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            Your ephemeral environment is ready!  
+            Your ephemeral environment is ready! 🚀  
             Access it here: http://${{ env.PUBLIC_IP }}:8080
+          identifier: ephemeral-env
 
       - name: Select Workspace (for destroy)
         if: github.event.action == 'closed'
@@ -61,6 +61,16 @@ jobs:
       - name: Terraform Destroy
         if: github.event.action == 'closed'
         run: terraform destroy -auto-approve
+
+      - name: Comment or Update PR (environment destroyed)
+        if: github.event.action == 'closed'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            The ephemeral environment for this PR has been destroyed. ✅
+          identifier: ephemeral-env
 
       - name: Delete Workspace
         if: github.event.action == 'closed'
