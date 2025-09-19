@@ -69,13 +69,16 @@ resource "aws_instance" "ephemeral" {
   }
 
   user_data = <<-EOF
-    #!/bin/bash
-    yum update -y
-    yum install git python3 -y
-    git clone https://github.com/THEosusi/Compliant-Ephemeral-Environments.git /home/ec2-user/app
-    cd /home/ec2-user/app/app
-    python3 -m pip install flask
-    nohup python3 app.py --host=0.0.0.0 --port=8080 &
+  #!/bin/bash
+  yum update -y
+  yum install git python3 -y
+  git clone https://github.com/THEosusi/Compliant-Ephemeral-Environments.git /home/ec2-user/app
+  cd /home/ec2-user/app
+  git fetch origin pull/${var.pr_number}/head:pr-${var.pr_number}
+  git checkout pr-${var.pr_number}
+  cd app
+  python3 -m pip install flask
+  nohup python3 app.py --host=0.0.0.0 --port=8080 &
   EOF
 
   tags = {
