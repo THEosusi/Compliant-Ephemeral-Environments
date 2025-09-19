@@ -64,6 +64,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
+          comment-identifier: ephemeral-env
           body: |
             Your ephemeral environment is ready! 🚀  
             Access it here: http://${{ env.PUBLIC_IP }}:8080
@@ -74,6 +75,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
+          comment-identifier: ephemeral-env
           body: |
             The ephemeral environment is being destroyed, please wait.... 🧨
 
@@ -83,7 +85,7 @@ jobs:
 
       - name: Terraform Destroy
         if: github.event.action == 'closed'
-        run: terraform destroy -auto-approve
+        run: terraform destroy -auto-approve -var="pr_number=${{ github.event.pull_request.number }}"
 
       - name: Comment or Update PR (environment destroyed)
         if: github.event.action == 'closed'
@@ -91,9 +93,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
+          comment-identifier: ephemeral-env
           body: |
             The ephemeral environment for this PR has been destroyed. ✅
 
       - name: Delete Workspace
         if: github.event.action == 'closed'
-        run: terraform workspace delete pr-${{ github.event.pull_request.number }}
+        run: terraform workspace delete pr-${{ github.event.pull_request.number }} || true
