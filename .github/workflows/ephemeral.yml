@@ -64,38 +64,48 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
-          comment-identifier: ephemeral-env
           body: |
             Your ephemeral environment is ready! 🚀  
             Access it here: http://${{ env.PUBLIC_IP }}:8080
 
-      - name: Comment or Update PR (environment destroying)
+      - name: Find existing "ready" comment
+        if: github.event.action == 'closed'
+        uses: peter-evans/find-comment@v3
+        id: find_ready
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'Your ephemeral environment is ready!'
+
+      - name: Update comment to "destroying"
         if: github.event.action == 'closed'
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
-          comment-identifier: ephemeral-env
+          comment-id: ${{ steps.find_ready.outputs.comment-id || '' }}
           body: |
             The ephemeral environment is being destroyed, please wait.... 🧨
+          edit-mode: replace
 
-      - name: Select Workspace (for destroy)
+      - name: Select default workspace before deleting
         if: github.event.action == 'closed'
-        run: terraform workspace select pr-${{ github.event.pull_request.number }}
+        run: terraform workspace select default || terraform workspace new default
 
       - name: Terraform Destroy
         if: github.event.action == 'closed'
         run: terraform destroy -auto-approve -var="pr_number=${{ github.event.pull_request.number }}"
 
-      - name: Comment or Update PR (environment destroyed)
+      - name: Update comment to "destroyed"
         if: github.event.action == 'closed'
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
-          comment-identifier: ephemeral-env
+          comment-id: ${{ steps.find_ready.outputs.comment-id || '' }}
           body: |
-            The ephemeral environment for this PR has been destroyed. ✅
+            The ephemeral environment has been destroyed. ✅
+          edit-mode: replace
 
       - name: Delete Workspace
         if: github.event.action == 'closed'
