@@ -38,6 +38,10 @@ jobs:
         if: github.event.action != 'closed'
         run: terraform apply -auto-approve
 
+      - name: Wait for instance to start
+        if: github.event.action != 'closed'
+        run: sleep 10
+
       - name: Get Terraform Output
         if: github.event.action != 'closed'
         id: tf_output
@@ -50,9 +54,20 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
+            <!-- ephemeral-env -->
             Your ephemeral environment is ready! 🚀  
             Access it here: http://${{ env.PUBLIC_IP }}:8080
-          identifier: ephemeral-env
+
+      - name: Comment or Update PR (environment destroying)
+        if: github.event.action == 'closed'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            <!-- ephemeral-env -->
+            The ephemeral environment is destroying... 🧨
+
 
       - name: Select Workspace (for destroy)
         if: github.event.action == 'closed'
@@ -69,8 +84,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
+            <!-- ephemeral-env -->
             The ephemeral environment for this PR has been destroyed. ✅
-          identifier: ephemeral-env
+
 
       - name: Delete Workspace
         if: github.event.action == 'closed'
