@@ -76,8 +76,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           comment-identifier: ephemeral-env
+          edit-mode: replace
           body: |
-            The ephemeral environment for this PR is being destroyed. 🧨
+            The ephemeral environment is being destroyed, please wait.... 🧨
 
       - name: Select Workspace (for destroy)
         if: github.event.action == 'closed'
@@ -94,6 +95,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           comment-identifier: ephemeral-env
+          edit-mode: replace
           body: |
             The ephemeral environment for this PR has been destroyed. ✅
 
