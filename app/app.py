@@ -9,7 +9,7 @@ def hello():
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Hello App</title>
+        <title>Hello App :)</title>
         <style>
             body {{
                 font-family: Arial, sans-serif;
