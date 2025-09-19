@@ -6,12 +6,21 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "s3" {
+    bucket         = "ephemeral-preinfra-tfstate-bucket"   # preinfra in bucekts
+    key            = "ephemeral/${terraform.workspace}.tfstate"
+    region         = var.aws_region
+    dynamodb_table = "ephemeral-preinfra-tflocks"          # preinfra in DynamoDB
+    encrypt        = true
+  }
 }
 
 provider "aws" {
   region = var.aws_region
 }
 
+# AMI
 data "aws_ami" "amazon_linux_2" {
   most_recent = true
   owners      = ["amazon"]
@@ -21,13 +30,11 @@ data "aws_ami" "amazon_linux_2" {
   }
 }
 
+# Security Group
 resource "aws_security_group" "no_inbound" {
   name        = "${var.project_name}-sg"
   description = "No inbound allowed (ephemeral test instance)"
 
-  # intentionally no ingress blocks
-
-  # checkov:skip=CKV_AWS_382 reason="Ephemeral environment allowed outbound traffic for demonstration."
   egress {
     description = "Allow all outbound"
     from_port   = 0
@@ -44,44 +51,43 @@ resource "aws_security_group" "no_inbound" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-
   tags = {
-    Name = "${var.project_name}-sg"
+    Name = "${var.project_name}-sg-${terraform.workspace}"
+    PR   = terraform.workspace
   }
 }
 
-# EC2 instance, no public IP, no key_name -> cannot SSH from outside
+# EC2 instance
 resource "aws_instance" "ephemeral" {
   ami                         = data.aws_ami.amazon_linux_2.id
   instance_type               = var.instance_type
   vpc_security_group_ids      = [aws_security_group.no_inbound.id]
-  associate_public_ip_address = true #checkov:skip=CKV_AWS_88: This is needed for the demonstration.
-  monitoring                  = true  
-  ebs_optimized               = true  
+  associate_public_ip_address = true
+  monitoring                  = true
+  ebs_optimized               = true
 
-  root_block_device {               
+  root_block_device {
     encrypted = true
   }
 
-
-
   user_data = <<-EOF
-            #!/bin/bash
-            yum update -y
-            yum install git python3 -y
-            git clone https://github.com/THEosusi/Compliant-Ephemeral-Environments.git /home/ec2-user/app
-            cd /home/ec2-user/app/app
-            python3 -m pip install flask
-            nohup python3 app.py --host=0.0.0.0 --port=8080 &
-            EOF
+    #!/bin/bash
+    yum update -y
+    yum install git python3 -y
+    git clone https://github.com/THEosusi/Compliant-Ephemeral-Environments.git /home/ec2-user/app
+    cd /home/ec2-user/app/app
+    python3 -m pip install flask
+    nohup python3 app.py --host=0.0.0.0 --port=8080 &
+  EOF
 
   tags = {
-    Name = "${var.project_name}-ephemeral"
+    Name = "${var.project_name}-ephemeral-${terraform.workspace}"
     Env  = "ephemeral"
+    PR   = terraform.workspace
   }
 
   metadata_options {
-    http_tokens = "required"
+    http_tokens   = "required"
     http_endpoint = "enabled"
   }
 }
