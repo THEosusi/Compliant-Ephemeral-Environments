@@ -38,14 +38,25 @@ jobs:
         if: github.event.action != 'closed'
         run: terraform apply -auto-approve
 
-      - name: Wait for instance to start
-        if: github.event.action != 'closed'
-        run: sleep 10
-
       - name: Get Terraform Output
         if: github.event.action != 'closed'
         id: tf_output
         run: echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+
+      - name: Wait for service to be ready
+        if: github.event.action != 'closed'
+        run: |
+          echo "Waiting for http://${PUBLIC_IP}:8080 to be reachable..."
+          for i in {1..50}; do
+            if curl -f --connect-timeout 5 http://${PUBLIC_IP}:8080 >/dev/null; then
+              echo "Service is up!"
+              exit 0
+            fi
+            echo "Not ready yet... retrying in 5s"
+            sleep 5
+          done
+          echo "Service did not become ready in time."
+          exit 1
 
       - name: Comment or Update PR (environment ready)
         if: github.event.action != 'closed'
@@ -53,8 +64,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
+          comment-identifier: ephemeral-env
           body: |
-            <!-- ephemeral-env -->
             Your ephemeral environment is ready! 🚀  
             Access it here: http://${{ env.PUBLIC_IP }}:8080
 
@@ -64,10 +75,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
+          comment-identifier: ephemeral-env
           body: |
-            <!-- ephemeral-env -->
-            The ephemeral environment is destroying... 🧨
-
+            The ephemeral environment for this PR is being destroyed. 🧨
 
       - name: Select Workspace (for destroy)
         if: github.event.action == 'closed'
@@ -83,10 +93,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
+          comment-identifier: ephemeral-env
           body: |
-            <!-- ephemeral-env -->
             The ephemeral environment for this PR has been destroyed. ✅
-
 
       - name: Delete Workspace
         if: github.event.action == 'closed'
