@@ -55,7 +55,7 @@ def hello():
     </head>
     <body>
         <div class="card">
-            <h1>Hello 👋!</h1>
+            <h1>Hello :)</h1>
             <p>Welcome to this very important app...</p>
         </div>
 
