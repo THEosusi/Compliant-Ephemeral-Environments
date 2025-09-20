@@ -19,6 +19,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Run Checkov (with custom policies)
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ./infra
+          external-checks-dir: ./custom_policies
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
