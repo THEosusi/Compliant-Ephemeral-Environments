@@ -33,7 +33,7 @@ resource "aws_security_group" "no_inbound" {
   name        = "${var.project_name}-sg-${terraform.workspace}"
   description = "No inbound allowed (ephemeral test instance)"
 
-  # checkov:skip=CKV_AWS_382: "Ephemeral environment allowed outbound traffic for demonstration."
+  # checkov:skip=CKV_AWS_382: Ephemeral environment allowed outbound traffic for demonstration.
   egress {
     description = "Allow all outbound"
     from_port   = 0
@@ -57,12 +57,12 @@ resource "aws_security_group" "no_inbound" {
 }
 
 # EC2 instance
-# checkov:skip=CKV2_AWS_41: "Ephemeral environment does not need IAM role"
 resource "aws_instance" "ephemeral" {
+  # checkov:skip=CKV2_AWS_41: Ephemeral environment does not need IAM role.
   ami                         = data.aws_ami.amazon_linux_2.id
   instance_type               = var.instance_type
   vpc_security_group_ids      = [aws_security_group.no_inbound.id]
-  associate_public_ip_address = true # checkov:skip=CKV_AWS_88: "This is needed for the demonstration."
+  associate_public_ip_address = true # checkov:skip=CKV_AWS_88: Public IP needed for the demonstration.
   monitoring                  = true
   ebs_optimized               = true
 
