@@ -94,9 +94,9 @@ jobs:
             The ephemeral environment is being destroyed, please wait.... 🧨
           edit-mode: replace
 
-      - name: Select default workspace before deleting
+      - name: Select PR workspace
         if: github.event.action == 'closed'
-        run: terraform workspace select default || terraform workspace new default
+        run: terraform workspace select pr-${{ github.event.pull_request.number }}
 
       - name: Terraform Destroy
         if: github.event.action == 'closed'
@@ -113,6 +113,10 @@ jobs:
             The ephemeral environment has been destroyed. ✅
           edit-mode: replace
 
-      - name: Delete Workspace
+      - name: Select default workspace 
+        if: github.event.action == 'closed'
+        run: terraform workspace select default || terraform workspace new default
+
+      - name: Delete Workspace of PR
         if: github.event.action == 'closed'
         run: terraform workspace delete pr-${{ github.event.pull_request.number }} || true
