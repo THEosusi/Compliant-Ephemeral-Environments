@@ -23,7 +23,7 @@ jobs:
         uses: bridgecrewio/checkov-action@master
         with:
           directory: ./infra
-          external-checks-dir: ./custom_policies
+          external_checks_dirs: ./custom_policies
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
