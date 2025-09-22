@@ -10,7 +10,7 @@ variable "project_name" {
 
 variable "instance_type" {
   type    = string
-  default = "t3.large"
+  default = "t3.small"
 }
 
 variable "pr_number" {
