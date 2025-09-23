@@ -71,8 +71,7 @@ resource "aws_instance" "ephemeral" {
   }
 
 
-# launch application
-
+  # launch application
   user_data = <<-EOF
   #!/bin/bash
   yum update -y
