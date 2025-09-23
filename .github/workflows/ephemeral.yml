@@ -16,6 +16,7 @@ jobs:
         working-directory: infra
 
     steps:
+      # --- Common setup: checkout code and run security checks ---
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -25,31 +26,35 @@ jobs:
           directory: ./infra
           external_checks_dirs: ./custom_policies
 
+      # --- Setup Terraform ---
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
 
-      - name: Terraform Init
+      - name: Terraform Init   # Initialize backend (state separated per PR number)
         run: |
           terraform init \
             -backend-config="key=ephemeral/pr-${{ github.event.pull_request.number }}.tfstate" \
             -backend-config="region=${{ env.AWS_REGION }}"
 
+      # =====================================================
+      # PR opened/synchronized/reopened → Create environment
+      # =====================================================
       - name: Select/Create Workspace
         if: github.event.action != 'closed'
         run: terraform workspace select pr-${{ github.event.pull_request.number }} || terraform workspace new pr-${{ github.event.pull_request.number }}
 
-      - name: Terraform Apply
+      - name: Terraform Apply   # ★ Deploy ephemeral environment
         if: github.event.action != 'closed'
         run: terraform apply -auto-approve -var="pr_number=${{ github.event.pull_request.number }}"
 
-      - name: Get Terraform Output
+      - name: Get Terraform Output   # Extract public_ip from outputs
         if: github.event.action != 'closed'
         id: tf_output
         run: echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
 
-      - name: Wait for service to be ready
+      - name: Wait for service to be ready   # Poll until service is reachable
         if: github.event.action != 'closed'
         run: |
           echo "Waiting for http://${PUBLIC_IP}:8080 to be reachable..."
@@ -64,16 +69,19 @@ jobs:
           echo "Service did not become ready in time."
           exit 1
 
-      - name: Comment or Update PR (environment ready)
+      - name: Comment or Update PR (environment ready)   # Notify PR with access URL
         if: github.event.action != 'closed'
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            Your ephemeral environment is ready! 🚀  
+            Your ephemeral environment is ready! 🚀
             Access it here: http://${{ env.PUBLIC_IP }}:8080
 
+      # =====================================================
+      # PR closed → Destroy environment
+      # =====================================================
       - name: Find existing "ready" comment
         if: github.event.action == 'closed'
         uses: peter-evans/find-comment@v3
@@ -83,7 +91,7 @@ jobs:
           comment-author: 'github-actions[bot]'
           body-includes: 'Your ephemeral environment is ready!'
 
-      - name: Update comment to "destroying"
+      - name: Update comment to "destroying"   # Inform PR that cleanup is starting
         if: github.event.action == 'closed'
         uses: peter-evans/create-or-update-comment@v4
         with:
@@ -98,11 +106,11 @@ jobs:
         if: github.event.action == 'closed'
         run: terraform workspace select pr-${{ github.event.pull_request.number }}
 
-      - name: Terraform Destroy
+      - name: Terraform Destroy   # ★ Destroy ephemeral environment
         if: github.event.action == 'closed'
         run: terraform destroy -auto-approve -var="pr_number=${{ github.event.pull_request.number }}"
 
-      - name: Update comment to "destroyed"
+      - name: Update comment to "destroyed"   # Confirm destruction in PR
         if: github.event.action == 'closed'
         uses: peter-evans/create-or-update-comment@v4
         with:
@@ -113,10 +121,10 @@ jobs:
             The ephemeral environment has been destroyed. ✅
           edit-mode: replace
 
-      - name: Select default workspace 
+      - name: Select default workspace   # Switch back to default after cleanup
         if: github.event.action == 'closed'
         run: terraform workspace select default || terraform workspace new default
 
-      - name: Delete Workspace of PR
+      - name: Delete Workspace of PR   # Remove PR-specific workspace
         if: github.event.action == 'closed'
         run: terraform workspace delete pr-${{ github.event.pull_request.number }} || true

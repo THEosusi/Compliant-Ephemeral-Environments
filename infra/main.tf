@@ -70,6 +70,9 @@ resource "aws_instance" "ephemeral" {
     encrypted = true
   }
 
+
+# launch application
+
   user_data = <<-EOF
   #!/bin/bash
   yum update -y
